@@ -1,5 +1,6 @@
 #! python3
-# pass_man.py - asks user for password then encrypts password
+# pass_man.py - Creates and stores username and encrypted password in shadow file, then
+# authenticates user login with account in shadow file
 import maskpass
 import sys
 import hashlib
