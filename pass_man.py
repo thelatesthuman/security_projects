@@ -2,7 +2,8 @@
 # pass_man.py - asks user for password then encrypts password
 import maskpass
 import sys
-from cryptography.fernet import Fernet
+import hashlib
+import os
 from pathlib import Path
 
 
@@ -40,16 +41,14 @@ def create_account():
     print(usernames)
 
     if username not in usernames:
-        # Generate Fernet key
-        key= Fernet.generate_key()
-        fernet = Fernet(key)
 
         # call password_input function and encrypt
-        encPassword = fernet.encrypt(create_password_input().encode())
+        salt = os.urandom(32)
+        encPassword = hashlib.pbkdf2_hmac('sha512', create_password_input().encode(), salt, 100000)
 
         # Write key and password to respective files
         shadow_file = open('shadow', 'a')
-        shadow_file.write(username + ':' + str(encPassword) + ':' + str(key) + '\n')
+        shadow_file.write(username + ':' + encPassword.hex() + ':' + salt.hex() + '\n')
         shadow_file.close()
         print("Account created!")
     else:
@@ -60,7 +59,17 @@ def authenticate():
     # Ask user for username and password
     username = input('Please enter your username: ')
     password = maskpass.askpass(prompt='Enter your password: ',mask='')
-
+    
+    # Open shadow file to compare real password hash with authenticating password hash
+    shadow_file = open('shadow', 'r')
+    for account in shadow_file:
+        if account.split(':')[0] == username:
+            originEncPass = bytes.fromhex(account.split(':')[1])
+            salt = bytes.fromhex(account.split(':')[2])
+            authEncPass = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, 100000)
+            if authEncPass == originEncPass: 
+                print('Password match!')
+    shadow_file.close()
 
 # Call functions based on user input
 try:
@@ -76,6 +85,6 @@ try:
         print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
     else:
         print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
-except:
-        print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
-
+except OSError as e:
+        #print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
+        print(f"Error is {e}")
