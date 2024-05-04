@@ -5,15 +5,6 @@ import maskpass
 import sys
 import hashlib
 import os
-from pathlib import Path
-
-
-def create_shadow_file():
-    shadow_file_path = (Path.cwd() / Path('shadow'))
-    if shadow_file_path.exists() == False:
-        shadow_file = open('shadow', 'w')
-        shadow_file.close()
-        print(shadow_file_path)
 
 
 def create_password_input():
@@ -21,20 +12,34 @@ def create_password_input():
     for attempt in range(3):
         password = maskpass.askpass(prompt='Please create a new password: ',mask='') 
         password_confirm = maskpass.askpass(prompt='Please confirm your password: ',mask='')
-        if password == password_confirm:
+        if password != password_confirm:
+            print("Passwords do not match.")
+            continue
+        # Validate password and return if valid
+        pass_valid = False
+        symbols = {'!','@','#','$','%','&','_','-'}
+        pass_valid = all([
+            any(char.isupper for char in password),
+            any(char.islower for char in password),
+            any(char.isdigit for char in password),
+            any(char in symbols for char in password),
+            len(password) >= 14
+            ])
+        if pass_valid == True:
             return password
         else:
-            print("Passwords do not match.")
+            print("Password invalid.")
             continue
 
 
 def create_account():
     # Ask user for username and confirm username is not already in use
-    username = input('Please enter your username: ')
+    username = input("Please enter your username: ")
     
     usernames = []
     shadow_file = open('shadow', 'r')
     f = shadow_file.read()
+    print(f)
     shadow_list = f.split()
     for account in shadow_list:
         usernames.append(account.split(':')[0])
@@ -58,8 +63,8 @@ def create_account():
 
 def authenticate():
     # Ask user for username and password
-    username = input('Please enter your username: ')
-    password = maskpass.askpass(prompt='Enter your password: ',mask='')
+    username = input("Please enter your username: ")
+    password = maskpass.askpass(prompt="Enter your password: ",mask='')
     
     # Open shadow file to compare real password hash with authenticating password hash
     shadow_file = open('shadow', 'r')
@@ -69,23 +74,30 @@ def authenticate():
             salt = bytes.fromhex(account.split(':')[2])
             authEncPass = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, 100000)
             if authEncPass == originEncPass: 
-                print('Password match!')
+                print("Login successful!")
+            else:
+                print("Login failed!")
     shadow_file.close()
 
+
 # Call functions based on user input
-try:
-    if sys.argv[1] == 'create_account':
-        try:
-            create_shadow_file()
-            create_account()
-        except:
-            print("Username or password not valid.")
-    elif sys.argv[1] == 'authenticate':
-        authenticate()
-    elif sys.argv[1] == 'help':    
-        print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
-    else:
-        print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
-except OSError as e:
-        #print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
-        print(f"Error is {e}")
+def main():    
+    try:
+        if sys.argv[1] == 'create_account':
+            try:
+                create_account()
+            except:
+                print("Username or password not valid.")
+        elif sys.argv[1] == 'authenticate':
+            authenticate()
+        elif sys.argv[1] == 'help':    
+            print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
+        else:
+            print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
+    except OSError as e:
+            #print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
+            print(f"Error is {e}")
+
+
+if __name__ == "__main__":
+    main()
