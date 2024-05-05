@@ -1,7 +1,7 @@
 #! python3
-# pass_man.py - Creates and stores username and encrypted password in shadow file, then
+# pass_man.py - Creates and stores username, encrypted password, and key in shadow file, then
 # authenticates user login with account in shadow file
-import maskpass
+import pyinputplus
 import sys
 import hashlib
 import os
@@ -10,8 +10,8 @@ import os
 def create_password_input():
     # Ask user to create password
     for attempt in range(3):
-        password = maskpass.askpass(prompt='Please create a new password: ',mask='') 
-        password_confirm = maskpass.askpass(prompt='Please confirm your password: ',mask='')
+        password = pyinputplus.inputPassword(prompt='Please create a new password: ') 
+        password_confirm = pyinputplus.inputPassword(prompt='Please confirm your password: ')
         if password != password_confirm:
             print("Passwords do not match.")
             continue
@@ -34,28 +34,24 @@ def create_password_input():
 
 def create_account():
     # Ask user for username and confirm username is not already in use
-    username = input("Please enter your username: ")
-    
-    usernames = []
-    shadow_file = open('shadow', 'r')
-    f = shadow_file.read()
-    print(f)
-    shadow_list = f.split()
-    for account in shadow_list:
-        usernames.append(account.split(':')[0])
-    shadow_file.close()
-    print(usernames)
+    username = pyinputplus.inputStr("Please enter your username: ",timeout=60)
+    try:
+        with open('shadow', 'r') as shadow_file:
+            f = shadow_file.read()
+    except FileNotFoundError:
+        with open('shadow', 'w') as shadow_file:
+            f = '' 
+    shadow_list = f.split('\n')
+    usernames = [account.split(':')[0] for account in shadow_list]
 
     if username not in usernames:
-
         # call password_input function and encrypt
         salt = os.urandom(32)
         encPassword = hashlib.pbkdf2_hmac('sha512', create_password_input().encode(), salt, 100000)
 
-        # Write key and password to respective files
-        shadow_file = open('shadow', 'a')
-        shadow_file.write(username + ':' + encPassword.hex() + ':' + salt.hex() + '\n')
-        shadow_file.close()
+        # Write username, password, and key to shadow file
+        with open('shadow', 'a') as shadow_file:
+            shadow_file.write(username + ':' + encPassword.hex() + ':' + salt.hex() + '\n')
         print("Account created!")
     else:
         print("Username unavailable")
@@ -63,21 +59,20 @@ def create_account():
 
 def authenticate():
     # Ask user for username and password
-    username = input("Please enter your username: ")
-    password = maskpass.askpass(prompt="Enter your password: ",mask='')
+    username = pyinputplus.inputStr("Please enter your username: ",timeout=60)
+    password = pyinputplus.inputPassword(prompt="Enter your password: ")
     
     # Open shadow file to compare real password hash with authenticating password hash
-    shadow_file = open('shadow', 'r')
-    for account in shadow_file:
-        if account.split(':')[0] == username:
-            originEncPass = bytes.fromhex(account.split(':')[1])
-            salt = bytes.fromhex(account.split(':')[2])
-            authEncPass = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, 100000)
-            if authEncPass == originEncPass: 
-                print("Login successful!")
-            else:
-                print("Login failed!")
-    shadow_file.close()
+    with open('shadow', 'r') as shadow_file:
+        for account in shadow_file:
+            if account.split(':')[0] == username:
+                originEncPass = bytes.fromhex(account.split(':')[1])
+                salt = bytes.fromhex(account.split(':')[2])
+                authEncPass = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, 100000)
+                if authEncPass == originEncPass: 
+                    print("Login successful!")
+                else:
+                    print("Login failed!")
 
 
 # Call functions based on user input
@@ -95,7 +90,6 @@ def main():
         else:
             print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
     except OSError as e:
-            #print("Options are 'create_account' for New account, 'authenticate' for Login, and 'help' for Help")
             print(f"Error is {e}")
 
 
