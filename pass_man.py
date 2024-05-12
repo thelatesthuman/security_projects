@@ -59,7 +59,8 @@ class PassMan:
                 shadow_file.write(username + ':' + encPassword.hex() + ':' + salt.hex() + '\n')
             print("Account created!")
         else:
-            print("Username unavailable")
+            PassMan.create_password_input()    
+            print("Username or Password invalid")
 
 
     def authenticate():
@@ -68,17 +69,21 @@ class PassMan:
         password = pyinputplus.inputPassword(prompt="Enter your password: ")
         
         # Open shadow file to compare real password hash with authenticating password hash
-        with open('shadow', 'r') as shadow_file:
-            for account in shadow_file:
-                if account.split(':')[0] == username:
-                    originEncPass = bytes.fromhex(account.split(':')[1])
-                    salt = bytes.fromhex(account.split(':')[2])
-                    authEncPass = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, 100000)
-                    if authEncPass == originEncPass: 
-                        return "Login successful!"
+        try:
+            with open('shadow', 'r') as shadow_file:
+                for account in shadow_file:
+                    if account.split(':')[0] == username:
+                        originEncPass = bytes.fromhex(account.split(':')[1])
+                        salt = bytes.fromhex(account.split(':')[2])
+                        authEncPass = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, 100000)
+                        if authEncPass == originEncPass: 
+                            return "Login successful!"
+                        else:
+                            return "Login failed!"
                     else:
                         return "Login failed!"
-
+        except:
+            return "Login failed!"
 
 # Call functions based on user input
 def main():    
