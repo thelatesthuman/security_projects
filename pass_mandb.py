@@ -1,12 +1,11 @@
 #! python3
 # pass_man.py - Creates and stores username, encrypted password, and key in pass_man postgres db, then
-# authenticates user login with account in database
+# authenticates user login with account in shadow file
 import pyinputplus
 import sys
 import hashlib
 import os
 import psycopg2
-
 
 class PassMan:
     def create_password_input():
@@ -35,13 +34,12 @@ class PassMan:
 
 
     def create_account():
-        # Ask user for username and confirm username is not already in use by opening 
-        # pass_man db and checking usernames
+        # Ask user for username and confirm username is not already in use by opening pass_man db and checking usernames
         username = pyinputplus.inputStr("Please enter your username: ",timeout=60)
         conn = psycopg2.connect(database = 'pass_man',
                 user = "",
                 host = 'localhost',
-                password = "",
+                password = '',
                 port = '5432'
                 )
         cur = conn.cursor()
@@ -63,7 +61,7 @@ class PassMan:
             conn = psycopg2.connect(database = 'pass_man',
                     user = "",
                     host = 'localhost',
-                    password = "",
+                    password = '',
                     port = '5432'
                     )
             cur = conn.cursor()
@@ -73,6 +71,7 @@ class PassMan:
             conn.close()
             print("Account created!")
         else:
+            PassMan.create_password_input()
             print("Username or password not valid!")
 
 
@@ -81,11 +80,12 @@ class PassMan:
         username = pyinputplus.inputStr("Please enter your username: ",timeout=60)
         password = pyinputplus.inputPassword(prompt="Enter your password: ")
         try:
-            # Open pass_man db and extract password and salt from accounts table
+            # Open pass_man db and extract password and salt from 
+            # accounts table
             conn = psycopg2.connect(database = 'pass_man',
                     user = "",
                     host = 'localhost',
-                    password = "",
+                    password = '',
                     port = '5432'
                     )
             cur = conn.cursor() 
@@ -95,7 +95,8 @@ class PassMan:
             cur.close()
             conn.close()
             
-            # Encrypt authentication password with salt and compare with original password
+            # Encrypt authentication password with salt and compare 
+            # with original password
             originEncPass = bytes.fromhex(pass_salt[0][0])
             salt = bytes.fromhex(pass_salt[0][1])
             authEncPass = hashlib.pbkdf2_hmac('sha512', password.encode(), salt, 100000)
@@ -107,7 +108,7 @@ class PassMan:
             return "Login failed!"
 
 # Call functions based on user input
-def main():    
+def main(): 
     try:
         if sys.argv[1] == 'create_account':
             PassMan.create_account()
