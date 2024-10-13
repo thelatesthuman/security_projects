@@ -72,7 +72,7 @@ def vignere_encrypt(pad_key, plaintext):
         cipher_message += char
 
 
-    print("encrypted message is: ", cipher_message)
+    return cipher_message
 
 
 def vignere_decrypt(pad_key, cipher_text):
@@ -105,7 +105,7 @@ def vignere_decrypt(pad_key, cipher_text):
     for char in plaintext_message_list:
         plaintext_message += char
     
-    print("plaintext message is: ", plaintext_message)
+    return plaintext_message
 
 
 def main():
@@ -114,22 +114,32 @@ def main():
             # Still need to add file support
             if sys.argv[3] == "-f":
                 key_arg = sys.argv[2]
-                message_arg = sys.argv[4]
-                vignere_encrypt(pad_key(key_arg, message_arg), message_arg)
+                message_file = ""
+                message = ""
+                with open(sys.argv[4], 'r') as f:
+                    message_file = f.read().strip().split(" ")
+                    for word in message_file:
+                        message += word
+                with open(sys.argv[4] + ".vig", 'w') as e:        
+                    message_encrypt = vignere_encrypt(pad_key(key_arg, message), message)
+                    e.write(message_encrypt)
             else:
                 key_arg = sys.argv[2]
                 message_arg = sys.argv[3]
-                vignere_encrypt(pad_key(key_arg, message_arg), message_arg)
+                print(vignere_encrypt(pad_key(key_arg, message_arg), message_arg))
         elif sys.argv[1] == "-d":
             # Still need to add file support
             if sys.argv[3] == "-f":
                 key_arg = sys.argv[2]
-                message_arg = sys.argv[4]
-                vignere_decrypt(pad_key(key_arg, message_arg), message_arg)
+                cipher = ""
+                with open(sys.argv[4], 'r') as f:
+                    cipher = f.read().strip()
+                decrypted_message = vignere_decrypt(pad_key(key_arg, cipher), cipher)
+                print(decrypted_message)
             else:
                 key_arg = sys.argv[2]
                 message_arg = sys.argv[3]
-                vignere_decrypt(pad_key(key_arg, message_arg), message_arg)
+                print(vignere_decrypt(pad_key(key_arg, message_arg), message_arg))
         else:
             print("Use vignere_cipher.py -e||-d key [-f] message")
     except OSError as e:
@@ -138,4 +148,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
